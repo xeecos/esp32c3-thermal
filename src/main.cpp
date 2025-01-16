@@ -25,7 +25,7 @@ boolean isConnected()
 
 void drawString(const char*str, int x, int y, uint16_t color);
 void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size);
-void setup(void) 
+int main(void) 
 {
     delay(2000);
     Wire.begin(PIN_SDA, PIN_SCL, 400000); //Increase I2C clock speed to 400kHz
@@ -52,6 +52,11 @@ void setup(void)
     MLX90640_SetRefreshRate(MLX90640_address, 0x04); //Set rate to 64Hz
 
     lcd.begin();
+    while(1)
+    {
+        loop();
+    }
+    return 0;
 }
 
 uint16_t getColor(float val, float minTemp, float maxTemp) 
