@@ -189,8 +189,22 @@ void MLX90640_I2CInit()
 // Returns 0 if successful, -1 if error
 int MLX90640_I2CRead(uint8_t _deviceAddress, unsigned int startAddress, unsigned int nWordsRead, uint16_t *data)
 {
-    Wire_BufferRead(_deviceAddress, (uint8_t *)data, startAddress, nWordsRead * 2);
-    return (0); // Success
+    int i = 0;
+
+    uint8_t i2cData[1664] = {0};
+    uint16_t *p;
+    uint8_t *p8 = &i2cData[0];
+    p = data;
+
+    Wire_BufferRead(_deviceAddress, p8, startAddress, nWordsRead*2);
+
+    for(int cnt=0; cnt < nWordsRead; cnt++)
+    {
+        i = cnt << 1;
+        *p++ = (uint16_t)i2cData[i]*256 + (uint16_t)i2cData[i+1];
+    }
+    
+    return 0; 
 }
 
 // Set I2C Freq, in kHz
@@ -203,6 +217,22 @@ void MLX90640_I2CFreqSet(int freq)
 // Write two bytes to a two byte address
 int MLX90640_I2CWrite(uint8_t _deviceAddress, unsigned int writeAddress, uint16_t data)
 {
-    Wire_ByteWrite(_deviceAddress, data, writeAddress);
-    return (0); // Success
+    uint8_t cmd[2] = {0};
+    static uint16_t dataCheck;
+
+
+    cmd[0] = data >> 8;
+    cmd[1] = data & 0x00FF;
+
+    uint8_t *p = &cmd[0];
+    Wire_ByteWrite(_deviceAddress, data, writeAddress); 
+    
+    MLX90640_I2CRead(_deviceAddress,writeAddress,1, &dataCheck);
+    
+    if ( dataCheck != data)
+    {
+        return -2;
+    }    
+    
+    return 0;
 }

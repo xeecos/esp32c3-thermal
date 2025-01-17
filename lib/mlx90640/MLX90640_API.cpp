@@ -17,7 +17,7 @@
 #include "MLX90640_I2C_Driver.h"
 #include "MLX90640_API.h"
 #include <math.h>
-
+#include "hal.h"
 void ExtractVDDParameters(uint16_t *eeData, paramsMLX90640 *mlx90640);
 void ExtractPTATParameters(uint16_t *eeData, paramsMLX90640 *mlx90640);
 void ExtractGainParameters(uint16_t *eeData, paramsMLX90640 *mlx90640);
@@ -59,7 +59,6 @@ int MLX90640_GetFrameData(uint8_t slaveAddr, uint16_t *frameData)
         }    
         dataReady = statusRegister & 0x0008;
     }       
-        
     while(dataReady != 0 && cnt < 5)
     { 
         error = MLX90640_I2CWrite(slaveAddr, 0x8000, 0x0030);

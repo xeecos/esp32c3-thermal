@@ -130,11 +130,11 @@ void ST7735::begin()
     SPI_InitStructure.SPI_CPOL      = SPI_CPOL_Low;
     SPI_InitStructure.SPI_CPHA      = SPI_CPHA_1Edge;
     SPI_InitStructure.SPI_NSS       = SPI_NSS_Soft;
-#if SPI_SPEED_MODE == SPI_FAST_MODE
-    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
-#else
+// #if SPI_SPEED_MODE == SPI_FAST_MODE
+//     SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
+// #else
     SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
-#endif
+// #endif
 
     SPI_InitStructure.SPI_FirstBit      = SPI_FirstBit_MSB;
     SPI_InitStructure.SPI_CRCPolynomial = 7;
@@ -143,9 +143,9 @@ void ST7735::begin()
     SPI_Cmd(SPI1, ENABLE);
     pinMode(GPIOA, GPIO_Pin_6, OUTPUT);
     digitalWrite(GPIOA, GPIO_Pin_6, HIGH);
-#if SPI_SPEED_MODE == SPI_FAST_MODE
-    SPI1->HSCR = 1;
-#endif
+// #if SPI_SPEED_MODE == SPI_FAST_MODE
+//     SPI1->HSCR = 1;
+// #endif
 
     if(rstPin != -1) {
         pinMode(GPIOA, rstPin, OUTPUT);
@@ -520,6 +520,7 @@ void ST7735::setPartArea(uint16_t sr, uint16_t er)
 // doesn't work
 void ST7735::setBrightness(uint8_t br) 
 {
+    digitalWrite(GPIOA, GPIO_Pin_6, br==0?LOW:HIGH);
 }
 
 // ----------------------------------------------------------

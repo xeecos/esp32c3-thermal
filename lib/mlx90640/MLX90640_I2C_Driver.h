@@ -49,7 +49,7 @@
 #define HAL_I2C_SCL_Pin          GPIO_Pin_6
 #define HAL_I2C_SDA_Pin          GPIO_Pin_7
 #define HAL_I2C_RCC_Port         RCC_APB2Periph_GPIOB
-#define HAL_I2C_Speed            200000
+#define HAL_I2C_Speed            100000
 
 void Wire_Init();
 void Wire_ByteWrite(uint8_t  slaveAddr, uint16_t pBuffer, uint8_t  WriteAddr);

@@ -8,7 +8,7 @@
 #include "MLX90640_I2C_Driver.h"
 #include "mono9.h"
 #include <debug.h>
-const unsigned char MLX90640_address = 0x33; //Default 7-bit unshifted address of the MLX90640
+const unsigned char MLX90640_address = 0x66;
 
 #define TA_SHIFT 8 //Default shift for MLX90640 in open air
 
@@ -27,8 +27,8 @@ int main(void)
     hal_init();
     int status;
     uint16_t eeMLX90640[832];
-    status = MLX90640_DumpEE(MLX90640_address, eeMLX90640);
-    status = MLX90640_ExtractParameters(eeMLX90640, &mlx90640);
+    MLX90640_DumpEE(MLX90640_address, eeMLX90640);
+    MLX90640_ExtractParameters(eeMLX90640, &mlx90640);
 
     //MLX90640_SetRefreshRate(MLX90640_address, 0x02); //Set rate to 2Hz
     // MLX90640_SetRefreshRate(MLX90640_address, 0x03); //Set rate to 4Hz
@@ -37,6 +37,11 @@ int main(void)
     lcd.begin();
     while(1)
     {
+        lcd.setBrightness(0);
+        Delay_Ms(500);
+        lcd.setBrightness(1);
+        Delay_Ms(500);
+
         loop();
     }
     return 0;
@@ -79,7 +84,7 @@ uint16_t getColor(float val, float minTemp, float maxTemp)
 void loop()
 {
     memset(bmp,0,128*64*2);
-    for (unsigned char x = 0 ; x < 2 ; x++) //Read both subpages
+    for (int x = 0 ; x < 2 ; x++) //Read both subpages
     {
         uint16_t mlx90640Frame[834];
         int status = MLX90640_GetFrameData(MLX90640_address, mlx90640Frame);
@@ -87,7 +92,6 @@ void loop()
         {
             // USBSerial.print("GetFrame Error: ");
         }
-
         float vdd = MLX90640_GetVdd(mlx90640Frame, &mlx90640);
         float Ta = MLX90640_GetTa(mlx90640Frame, &mlx90640);
 
@@ -148,12 +152,12 @@ void loop()
             }
         }
     }
-    char* temp = (char*)malloc(12);
-    memset(temp,0,12);
-    sprintf(temp, "%.2f", maxT);
-    drawString((const char*)temp,0,12,0x00ff);
-    lcd.drawImage(0,0,128,64,bmp);
-    Delay_Ms(40);
+    // char* temp = (char*)malloc(12);
+    // memset(temp,0,12);
+    // sprintf(temp, "%.2f", maxT);
+    // drawString((const char*)temp,0,12,0x00ff);
+    // lcd.drawImage(0,0,128,64,bmp);
+    Delay_Ms(100);
 }
 void writePixel(int x, int y, uint16_t color)
 {

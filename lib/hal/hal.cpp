@@ -1,6 +1,7 @@
 #include "hal.h"
 #include <ch32v20x.h>
 #include <debug.h>
+#include "MLX90640_I2C_Driver.h"
 void hal_init()
 {
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
@@ -8,6 +9,7 @@ void hal_init()
 	Delay_Init();
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_GPIOB|RCC_APB2Periph_GPIOC, ENABLE);
     pinMode(GPIOA, GPIO_Pin_2, GPIO_Mode_Out_PP);
+    MLX90640_I2CInit();
 }
 void pinMode(GPIO_TypeDef* port, uint16_t pin, GPIOMode_TypeDef mode)
 {
