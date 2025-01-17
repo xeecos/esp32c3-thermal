@@ -35,12 +35,13 @@ int main(void)
     MLX90640_SetRefreshRate(MLX90640_address, 0x04); //Set rate to 64Hz
 
     lcd.begin();
+    lcd.setRotation(2);
     while(1)
     {
-        lcd.setBrightness(0);
-        Delay_Ms(500);
-        lcd.setBrightness(1);
-        Delay_Ms(500);
+        // lcd.setBrightness(0);
+        // Delay_Ms(500);
+        // lcd.setBrightness(1);
+        // Delay_Ms(500);
 
         loop();
     }
@@ -152,16 +153,20 @@ void loop()
             }
         }
     }
-    // char* temp = (char*)malloc(12);
-    // memset(temp,0,12);
-    // sprintf(temp, "%.2f", maxT);
-    // drawString((const char*)temp,0,12,0x00ff);
-    // lcd.drawImage(0,0,128,64,bmp);
-    Delay_Ms(100);
+    char* temp = (char*)malloc(12);
+    memset(temp,0,12);
+    sprintf(temp, "%.1f", maxT);
+    drawString((const char*)temp,0,12,RGBto565(0x0, 0x0, 0xff));
+    memset(temp,0,12);
+    sprintf(temp, "%.1f", minT);
+    drawString((const char*)temp,0,60,RGBto565(0xff, 0x0, 0x0));
+    lcd.drawImage(0,0,128,64,bmp);
+    free(temp);
+    // Delay_Ms(100);
 }
 void writePixel(int x, int y, uint16_t color)
 {
-    int idx = x + y * 128;
+    int idx = (127-x) + (63-y) * 128;
     if(idx>=0&&idx<128*64)
     {
         bmp[idx] = color;

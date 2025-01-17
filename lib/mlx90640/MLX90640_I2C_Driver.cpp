@@ -40,7 +40,7 @@ void Wire_Init()
     /* I2C configuration */
     I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
     I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
-    I2C_InitStructure.I2C_OwnAddress1 = 0x02;
+    I2C_InitStructure.I2C_OwnAddress1 = 0x01;
     I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
     I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
     I2C_InitStructure.I2C_ClockSpeed = HAL_I2C_Speed;
@@ -58,7 +58,7 @@ void Wire_Init()
  * @param  WriteAddr : address of the register in which the data will be written
  * @retval None
  */
-void Wire_ByteWrite(uint8_t slaveAddr, uint16_t pBuffer, uint8_t WriteAddr)
+void Wire_ByteWrite(uint8_t slaveAddr, uint16_t pBuffer, uint16_t WriteAddr)
 {
     // ENTR_CRT_SECTION();
 
@@ -76,8 +76,12 @@ void Wire_ByteWrite(uint8_t slaveAddr, uint16_t pBuffer, uint8_t WriteAddr)
     while (!I2C_CheckEvent(HAL_I2C, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
         ;
 
-    /* Send the HMC5883L internal address to write to */
-    I2C_SendData(HAL_I2C, WriteAddr);
+    I2C_SendData(HAL_I2C, WriteAddr>>8);
+
+    /* Test on EV8 and clear it */
+    while (!I2C_CheckEvent(HAL_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+        ;
+    I2C_SendData(HAL_I2C, WriteAddr&0xff);
 
     /* Test on EV8 and clear it */
     while (!I2C_CheckEvent(HAL_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
@@ -104,7 +108,7 @@ void Wire_ByteWrite(uint8_t slaveAddr, uint16_t pBuffer, uint8_t WriteAddr)
  * @param  NumByteToRead : number of bytes to read from the HMC5883L ( NumByteToRead >1  only for the Magnetometer reading).
  * @retval None
  */
-void Wire_BufferRead(uint8_t slaveAddr, uint8_t *pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead)
+void Wire_BufferRead(uint8_t slaveAddr, uint8_t *pBuffer, uint16_t ReadAddr, uint16_t NumByteToRead)
 {
     // ENTR_CRT_SECTION();
 
@@ -129,13 +133,17 @@ void Wire_BufferRead(uint8_t slaveAddr, uint8_t *pBuffer, uint8_t ReadAddr, uint
     /* Clear EV6 by setting again the PE bit */
     I2C_Cmd(HAL_I2C, ENABLE);
 
-    /* Send the HMC5883L's internal address to write to */
-    I2C_SendData(HAL_I2C, ReadAddr);
+    I2C_SendData(HAL_I2C, ReadAddr>>8);
 
     /* Test on EV8 and clear it */
     while (!I2C_CheckEvent(HAL_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
         ;
 
+    I2C_SendData(HAL_I2C, ReadAddr&0xff);
+
+    /* Test on EV8 and clear it */
+    while (!I2C_CheckEvent(HAL_I2C, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
+        ;
     /* Send STRAT condition a second time */
     I2C_GenerateSTART(HAL_I2C, ENABLE);
 
