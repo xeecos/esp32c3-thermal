@@ -1,8 +1,6 @@
 #include "st7735.h"
-#include <Arduino.h>
-#include <SPI.h>
 #include <config.h>
-
+#include <debug.h>
 // Initialization commands for ST7735 128x160 1.8" IPS
 
 static const uint8_t Rcmd1[] = {                       // 7735R init, part 1 (red or green tab)
@@ -71,21 +69,21 @@ Rcmd2red[] = {                    // 7735R init, part 2 (red tab only)
 };         
 
 
-static SPISettings spiSettings;
-#define SPI_START  SPI.beginTransaction(spiSettings)
-#define SPI_END    SPI.endTransaction()
+// static SPISettings spiSettings;
+#define SPI_START  //SPI.beginTransaction(spiSettings)
+#define SPI_END    //SPI.endTransaction()
 
 // macros for fast DC and CS state changes
-#define DC_DATA     digitalWrite(dcPin, HIGH)
-#define DC_COMMAND  digitalWrite(dcPin, LOW)
+#define DC_DATA     digitalWrite(GPIOA, dcPin, HIGH)
+#define DC_COMMAND  digitalWrite(GPIOA, dcPin, LOW)
 
 // if CS always connected to the ground then don't do anything for better performance
 #ifdef CS_ALWAYS_LOW
 #define CS_IDLE
 #define CS_ACTIVE
 #else
-#define CS_IDLE     digitalWrite(csPin, HIGH)
-#define CS_ACTIVE   digitalWrite(csPin, LOW)
+#define CS_IDLE     digitalWrite(csPort, csPin, HIGH)
+#define CS_ACTIVE   digitalWrite(csPort, csPin, LOW)
 #endif
 
 // ----------------------------------------------------------
@@ -94,32 +92,69 @@ static SPISettings spiSettings;
 // in compatibility mode (SPI.transfer(c)) -> about 4 Mbps
 inline void ST7735::writeSPI(uint8_t c) 
 {
-    SPI.transfer(c);
+    while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
+    SPI_I2S_SendData(SPI1, c);
 }
 
 // ----------------------------------------------------------
-ST7735::ST7735(int8_t dc, int8_t rst, int8_t cs)
+ST7735::ST7735()
 {
-    csPin = cs;
-    dcPin = dc;
-    rstPin = rst;
+    csPin = -1;
+    dcPin = GPIO_Pin_4;
+    rstPin = GPIO_Pin_3;
 }
 
 // ----------------------------------------------------------
 void ST7735::begin() 
 {
-    pinMode(dcPin, OUTPUT);
+    pinMode(GPIOA, dcPin, OUTPUT);
 
-    SPI.begin(PIN_SCLK, 21, PIN_SDATA, -1);
-    spiSettings = SPISettings(40000000, MSBFIRST, SPI_MODE0);  // 8000000 gives max speed on AVR 16MHz
+    GPIO_InitTypeDef GPIO_InitStructure = {0};
+    SPI_InitTypeDef  SPI_InitStructure  = {0};
+
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_SPI1, ENABLE);
+
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_5;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_7;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    SPI_InitStructure.SPI_Direction = SPI_Direction_1Line_Tx;
+    SPI_InitStructure.SPI_Mode      = SPI_Mode_Master;
+    SPI_InitStructure.SPI_DataSize  = SPI_DataSize_8b;
+    SPI_InitStructure.SPI_CPOL      = SPI_CPOL_Low;
+    SPI_InitStructure.SPI_CPHA      = SPI_CPHA_1Edge;
+    SPI_InitStructure.SPI_NSS       = SPI_NSS_Soft;
+#if SPI_SPEED_MODE == SPI_FAST_MODE
+    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
+#else
+    SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+#endif
+
+    SPI_InitStructure.SPI_FirstBit      = SPI_FirstBit_MSB;
+    SPI_InitStructure.SPI_CRCPolynomial = 7;
+    SPI_Init(SPI1, &SPI_InitStructure);
+
+    SPI_Cmd(SPI1, ENABLE);
+    pinMode(GPIOA, GPIO_Pin_6, OUTPUT);
+    digitalWrite(GPIOA, GPIO_Pin_6, HIGH);
+#if SPI_SPEED_MODE == SPI_FAST_MODE
+    SPI1->HSCR = 1;
+#endif
+
     if(rstPin != -1) {
-        pinMode(rstPin, OUTPUT);
-        digitalWrite(rstPin, HIGH);
-        delay(50);
-        digitalWrite(rstPin, LOW);
-        delay(50);
-        digitalWrite(rstPin, HIGH);
-        delay(50);
+        pinMode(GPIOA, rstPin, OUTPUT);
+        digitalWrite(GPIOA, rstPin, HIGH);
+        Delay_Ms(50);
+        digitalWrite(GPIOA, rstPin, LOW);
+        Delay_Ms(50);
+        digitalWrite(GPIOA, rstPin, HIGH);
+        Delay_Ms(50);
     }
 
     _colstart = 2;
@@ -174,7 +209,7 @@ void ST7735::displayInit(const uint8_t *addr)
         if(ms) {
         ms = pgm_read_byte(addr++); // Read post-command delay time (ms)
         if(ms == 255) ms = 500;     // If 255, delay for 500 ms
-        delay(ms);
+        Delay_Ms(ms);
         }
     }
 }
@@ -419,32 +454,32 @@ uint16_t ST7735::Color565(uint8_t r, uint8_t g, uint8_t b)
 }
 
 // ----------------------------------------------------------
-void ST7735::invertDisplay(boolean mode) 
+void ST7735::invertDisplay(bool mode) 
 {
     writeCmd(mode ? ST7735_INVON : ST7735_INVOFF);
 }
 
 // ----------------------------------------------------------
-void ST7735::partialDisplay(boolean mode) 
+void ST7735::partialDisplay(bool mode) 
 {
     writeCmd(mode ? ST7735_PTLON : ST7735_NORON);
 }
 
 // ----------------------------------------------------------
-void ST7735::sleepDisplay(boolean mode) 
+void ST7735::sleepDisplay(bool mode) 
 {
     writeCmd(mode ? ST7735_SLPIN : ST7735_SLPOUT);
-    delay(5);
+    Delay_Ms(5);
 }
 
 // ----------------------------------------------------------
-void ST7735::enableDisplay(boolean mode) 
+void ST7735::enableDisplay(bool mode) 
 {
     writeCmd(mode ? ST7735_DISPON : ST7735_DISPOFF);
 }
 
 // ----------------------------------------------------------
-void ST7735::idleDisplay(boolean mode) 
+void ST7735::idleDisplay(bool mode) 
 {
     writeCmd(mode ? ST7735_IDMON : ST7735_IDMOFF);
 }
@@ -453,7 +488,7 @@ void ST7735::idleDisplay(boolean mode)
 void ST7735::resetDisplay() 
 {
     writeCmd(ST7735_SWRESET);
-    delay(5);
+    Delay_Ms(5);
 }
 
 // ----------------------------------------------------------

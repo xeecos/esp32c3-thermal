@@ -1,5 +1,6 @@
 #pragma once
-
+#include <stdint.h>
+#include "hal.h"
 // ------------------------------
 // remove "define COMPATIBILITY_MODE" for best performance on 16MHz AVR Arduinos
 // if defined - the library should work on all Arduino compatible boards
@@ -8,9 +9,6 @@
 // define for LCD boards where CS pin is internally connected to the ground
 #define CS_ALWAYS_LOW
 // ------------------------------
-
-#include <Arduino.h>
-
 
 #define ST7735_TFTWIDTH 	128
 #define ST7735_TFTHEIGHT 	64
@@ -99,7 +97,7 @@ class ST7735
 {
 
  public:
-  ST7735(int8_t DC, int8_t RST, int8_t CS = -1);
+  ST7735();
 
   void begin();
   void setAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
@@ -114,11 +112,11 @@ class ST7735
   void drawImageF(int16_t x, int16_t y, int16_t w, int16_t h, const uint16_t *img16);
   void drawImageF(int16_t x, int16_t y, const uint16_t *img16) { drawImageF(x,y,pgm_read_word(img16),pgm_read_word(img16+1),img16+3); } 
   void setRotation(uint8_t r);
-  void invertDisplay(boolean mode);
-  void partialDisplay(boolean mode);
-  void sleepDisplay(boolean mode);
-  void enableDisplay(boolean mode);
-  void idleDisplay(boolean mode);
+  void invertDisplay(bool mode);
+  void partialDisplay(bool mode);
+  void sleepDisplay(bool mode);
+  void enableDisplay(bool mode);
+  void idleDisplay(bool mode);
   void resetDisplay();
   void setScrollArea(uint16_t tfa, uint16_t bfa);
   void setScroll(uint16_t vsp);
@@ -142,8 +140,8 @@ class ST7735
 
  private:
   int8_t  csPin, dcPin, rstPin;
-  uint8_t  csMask, dcMask;
-  volatile uint8_t  *csPort, *dcPort;
+  uint8_t csMask, dcMask;
+  // volatile uint8_t  *csPort, *dcPort;
   uint16_t _width, _height;
 
 };

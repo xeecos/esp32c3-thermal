@@ -1,11 +1,14 @@
-#include <config.h>
-#include <st7735.h>
-#include "driver/adc.h"
-#include <Wire.h>
+#include "config.h"
+#include "st7735.h"
+#include "hal.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "MLX90640_API.h"
 #include "MLX90640_I2C_Driver.h"
 #include "mono9.h"
-const byte MLX90640_address = 0x33; //Default 7-bit unshifted address of the MLX90640
+#include <debug.h>
+const unsigned char MLX90640_address = 0x33; //Default 7-bit unshifted address of the MLX90640
 
 #define TA_SHIFT 8 //Default shift for MLX90640 in open air
 
@@ -13,39 +16,19 @@ static float mlx90640To[768];
 uint16_t bmp[128*64];
 paramsMLX90640 mlx90640;
 
-ST7735 lcd = ST7735(PIN_DC, PIN_RST, -1);
-
-boolean isConnected()
-{
-  Wire.beginTransmission((uint8_t)MLX90640_address);
-  if (Wire.endTransmission() != 0)
-    return (false); //Sensor did not ACK
-  return (true);
-}
+ST7735 lcd = ST7735();
 
 void drawString(const char*str, int x, int y, uint16_t color);
 void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size);
-int main(void) 
+void loop();
+int main(void)
 {
-    delay(2000);
-    Wire.begin(PIN_SDA, PIN_SCL, 400000); //Increase I2C clock speed to 400kHz
-    USBSerial.begin(115200);
-    pinMode(PIN_LED, OUTPUT);
-    if (isConnected() == false)
-    {
-        USBSerial.println("MLX90640 not detected at default I2C address. Please check wiring. Freezing.");
-        while (1);
-    }
-    USBSerial.println("MLX90640 online!");
+
+    hal_init();
     int status;
     uint16_t eeMLX90640[832];
     status = MLX90640_DumpEE(MLX90640_address, eeMLX90640);
-    if (status != 0)
-        USBSerial.println("Failed to load system parameters");
-
     status = MLX90640_ExtractParameters(eeMLX90640, &mlx90640);
-    if (status != 0)
-        USBSerial.println("Parameter extraction failed");
 
     //MLX90640_SetRefreshRate(MLX90640_address, 0x02); //Set rate to 2Hz
     // MLX90640_SetRefreshRate(MLX90640_address, 0x03); //Set rate to 4Hz
@@ -61,16 +44,6 @@ int main(void)
 
 uint16_t getColor(float val, float minTemp, float maxTemp) 
 {
-  /*
-    pass in value and figure out R G B
-    several published ways to do this I basically graphed R G B and developed simple linear equations
-    again a 5-6-5 color display will not need accurate temp to R G B color calculation
-
-    equations based on
-    http://web-tech.ga-usa.com/2012/05/creating-a-custom-hot-to-cold-temperature-color-gradient-for-use-with-rrdtool/index.html
-
-  */
-
   float a = minTemp + (maxTemp - minTemp) * 0.2121;
   float b = minTemp + (maxTemp - minTemp) * 0.3182;
   float c = minTemp + (maxTemp - minTemp) * 0.4242;
@@ -106,14 +79,13 @@ uint16_t getColor(float val, float minTemp, float maxTemp)
 void loop()
 {
     memset(bmp,0,128*64*2);
-    for (byte x = 0 ; x < 2 ; x++) //Read both subpages
+    for (unsigned char x = 0 ; x < 2 ; x++) //Read both subpages
     {
         uint16_t mlx90640Frame[834];
         int status = MLX90640_GetFrameData(MLX90640_address, mlx90640Frame);
         if (status < 0)
         {
-            USBSerial.print("GetFrame Error: ");
-            USBSerial.println(status);
+            // USBSerial.print("GetFrame Error: ");
         }
 
         float vdd = MLX90640_GetVdd(mlx90640Frame, &mlx90640);
@@ -181,7 +153,7 @@ void loop()
     sprintf(temp, "%.2f", maxT);
     drawString((const char*)temp,0,12,0x00ff);
     lcd.drawImage(0,0,128,64,bmp);
-    delay(100);
+    Delay_Ms(40);
 }
 void writePixel(int x, int y, uint16_t color)
 {
@@ -201,7 +173,6 @@ void writeFillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
         }
     }
 }
-#define pgm_read_byte(addr) (*(const unsigned char *)(addr))
 void drawString(const char*str, int x, int y, uint16_t color)
 {
     int i = 0;
