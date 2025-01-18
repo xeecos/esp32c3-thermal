@@ -107,8 +107,9 @@ ST7735::ST7735()
 // ----------------------------------------------------------
 void ST7735::begin() 
 {
+    pinMode(GPIOA, GPIO_Pin_6, OUTPUT);
     pinMode(GPIOA, dcPin, OUTPUT);
-
+    Delay_Ms(100);
     GPIO_InitTypeDef GPIO_InitStructure = {0};
     SPI_InitTypeDef  SPI_InitStructure  = {0};
 
@@ -141,8 +142,6 @@ void ST7735::begin()
     SPI_Init(SPI1, &SPI_InitStructure);
 
     SPI_Cmd(SPI1, ENABLE);
-    pinMode(GPIOA, GPIO_Pin_6, OUTPUT);
-    digitalWrite(GPIOA, GPIO_Pin_6, HIGH);
 // #if SPI_SPEED_MODE == SPI_FAST_MODE
 //     SPI1->HSCR = 1;
 // #endif

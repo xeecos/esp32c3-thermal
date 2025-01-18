@@ -9,7 +9,8 @@ void hal_init();
 void pinMode(GPIO_TypeDef* port, uint16_t pin, GPIOMode_TypeDef mode);
 void digitalWrite(GPIO_TypeDef* port, uint16_t pin, int val);
 int digitalRead(GPIO_TypeDef* port, uint16_t pin);
-
+float GetVoltage();
+float GetBatPercent();
 #define pgm_read_word(addr) (*(const unsigned short *)(addr)) 
 #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
 #define constrain(amt,low,high) ((amt)<(low)?(low):((amt)>(high)?(high):(amt)))
