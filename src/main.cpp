@@ -9,6 +9,41 @@
 #include "mono9.h"
 #include <math.h>
 #include <debug.h>
+
+#include "gattprofile.h"
+#include "peripheral.h"
+#include "app_uart.h"
+#include "wchble.h"
+#include "BLEHAL.h"
+
+
+/*********************************************************************
+ * GLOBAL TYPEDEFS
+ */
+__attribute__((aligned(4))) u32 MEM_BUF[BLE_MEMHEAP_SIZE / 4];
+
+#if(defined(BLE_MAC)) && (BLE_MAC == TRUE)
+uint8_t const MacAddr[6] = {0x84, 0xC2, 0xE4, 0x03, 0x02, 0x02};
+#endif
+
+
+/*********************************************************************
+ * @fn      Main_Circulation
+ *
+ * @brief   Main loop
+ *
+ * @return  none
+ */
+__attribute__((section(".highcode")))
+__attribute__((noinline))
+void Main_Circulation(void)
+{
+    while(1)
+    {
+        TMOS_SystemProcess();
+        app_uart_process();
+    }
+}
 const unsigned char MLX90640_address = 0x66;
 
 #define TA_SHIFT 8 // Default shift for MLX90640 in open air
@@ -70,8 +105,14 @@ void keyInit()
 }
 int main(void)
 {
-
     hal_init();
+    BLE_HAL_Init();
+    WCHBLE_Init();
+    GAPRole_PeripheralInit();
+    Peripheral_Init();
+    app_uart_init();
+    Main_Circulation();
+
     keyInit();
     uint16_t eeMLX90640[832];
     MLX90640_DumpEE(MLX90640_address, eeMLX90640);
